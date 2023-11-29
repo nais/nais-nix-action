@@ -1,0 +1,29 @@
+* NAIS NIX ACTION
+
+Nais Nix Action is a convention-over-configuration github workflow
+action. You provide a flake and Nais Nix Action does the right thing!
+
+** Conventions
+
+You can supply the following packages or outputs and the right thing
+will happen
+
+- container -> if this attr exists and builds a docker container using
+  dockerTools then we will upload the container to GAR, with some
+  additonal tags
+
+- checks, we run nix flake check, it runs all the checks outputs
+  before anything else is built. If you're running on kvm (Public
+  repos) or on large runners then you can run vmtests for x86_64-linux
+
+*** Planned
+
+- sbom -> if this attr exists and builds an sbom in the cyclonedx
+  format then that will be uploaded to nais dependencytrack
+
+- cdn -> if this attr exists and builds some set of static outputs
+  then each of those gets uploaded to nais cdn and <<build outputs>>
+  of the workflow aciton
+
+- release -> We should have an ergonomic way of going from tag or
+  somesuch to github release
