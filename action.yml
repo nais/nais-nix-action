@@ -184,6 +184,7 @@ runs:
         docker tag ${{ steps.analyze.outputs.image_address }}:latest ${{ steps.analyze.outputs.image_address }}:${date_tag}
         image_sha256=$(docker images --no-trunc --quiet ${{ steps.analyze.outputs.image_address }}:latest)
         echo "image_sha256=${image_sha256}" >> $GITHUB_OUTPUT
+        echo "date_tag=${date_tag}" >> $GITHUB_OUTPUT
         docker push --all-tags ${{ steps.analyze.outputs.image_address }}
 
     # *** Run cosign et al.
@@ -199,5 +200,5 @@ runs:
       shell: bash
       id: set-outputs
       run: |-
-        echo "image=${{ steps.analyze.outputs.image_address }}" >> $GITHUB_OUTPUT
+        echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.push.outputs.date_tag }}" >> $GITHUB_OUTPUT
         echo "sbom=${{ steps.build-sbom.outputs.sbom }}" >> $GITHUB_OUTPUT
