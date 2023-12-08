@@ -16,10 +16,10 @@ will happen
   before anything else is built. If you're running on kvm (Public
   repos) or on large runners then you can run vmtests for x86_64-linux
 
-*** Planned
-
 - sbom -> if this attr exists and builds an sbom in the cyclonedx
   format then that will be uploaded to nais dependencytrack
+
+*** Planned
 
 - cdn -> if this attr exists and builds some set of static outputs
   then each of those gets uploaded to nais cdn and <<build outputs>>
