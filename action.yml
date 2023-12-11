@@ -213,4 +213,4 @@ runs:
       run: |-
         echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.push.outputs.date_tag }}" >> $GITHUB_OUTPUT
         echo "sbom=${{ steps.build-sbom.outputs.sbom }}" >> $GITHUB_OUTPUT
-        echo "spec=${{ steps.build-spec.outputs.spec}}" >> $GITHUB_OUTPUT
+        echo "spec=${{ steps.build-spec.outputs.spec }}" >> $GITHUB_OUTPUT
