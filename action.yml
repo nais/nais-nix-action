@@ -136,6 +136,7 @@ runs:
       shell: bash
       run: |
         nix build .#spec --out-link result-spec.yaml
+        echo "- Built nais spec, $(wc -l result-spec.yaml) lines" >> $GITHUB_STEP_SUMMARY
         echo "spec=result-spec.yaml" >> $GITHUB_OUTPUT
 
     # *** Build and load images
