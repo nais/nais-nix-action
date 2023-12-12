@@ -8,7 +8,7 @@ action. You provide a flake and Nais Nix Action does the right thing!
 You can supply the following packages or outputs and the right thing
 will happen
 
-- container -> if this attr exists and builds a docker container using
+- image -> if this attr exists and builds a docker container using
   dockerTools then we will upload the container to GAR, with some
   additonal tags
 
@@ -18,6 +18,12 @@ will happen
 
 - sbom -> if this attr exists and builds an sbom in the cyclonedx
   format then that will be uploaded to nais dependencytrack
+
+- spec -> Is for the nais spec, if you have this output It will be built
+  and uploaded to the action as spec.yaml. Then you can download that and
+  use it in lieue of having a yaml file in the repo. I.e if you want to
+  use any other tool to generate your spec, like CUE, Dhall or a series of
+  small shell scripts you are more than welcome to.
 
 *** Planned
 
