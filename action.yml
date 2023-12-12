@@ -135,9 +135,14 @@ runs:
       id: build-spec
       shell: bash
       run: |
-        nix build .#spec --out-link result-spec.yaml
-        echo "- Built nais spec, this many chars: $(wc -c result-spec.yaml)" >> $GITHUB_STEP_SUMMARY
-        echo "spec=result-spec.yaml" >> $GITHUB_OUTPUT
+        nix build .#spec --out-link spec.yaml
+        echo "- Built nais spec, this many chars: $(wc -c spec.yaml)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload spec
+        uses: actions/upload-artifact@v3
+        with:
+          name: spec.yaml
+          path: spec.yaml
 
     # *** Build and load images
     # Build the images as a tarball, load the image and retag it with "fully qualified OCI reference name"
@@ -214,4 +219,3 @@ runs:
       run: |-
         echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.push.outputs.date_tag }}" >> $GITHUB_OUTPUT
         echo "sbom=${{ steps.build-sbom.outputs.sbom }}" >> $GITHUB_OUTPUT
-        echo "spec=${{ steps.build-spec.outputs.spec }}" >> $GITHUB_OUTPUT
