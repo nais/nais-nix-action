@@ -126,7 +126,7 @@ runs:
       run: |
         nix build .#sbom --out-link sbom.json
 
-        echo "✅ Built SBOM, $(wc -l sbom.json | awk 'print $1') lines" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Built SBOM, $(wc -l sbom.json | awk '{print $1}') lines" >> $GITHUB_STEP_SUMMARY
         echo "sbom=sbom.json" >> $GITHUB_OUTPUT
 
     # *** Build app spec, should the package exist
