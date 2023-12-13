@@ -116,7 +116,7 @@ runs:
     - name: add banner
       shell: bash
       run: |
-        echo "# Nix builds" >> $GITHUB_STEP_SUMMARY
+        echo "# ![](https://avatars.githubusercontent.com/u/29488289?s=200&v=4) Nais nix build" >> $GITHUB_STEP_SUMMARY
 
     # *** Build SBOM, should the package exist
     - name: Build SBOM

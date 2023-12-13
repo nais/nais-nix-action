@@ -28,7 +28,7 @@ will happen
 *** Planned
 
 - cdn -> if this attr exists and builds some set of static outputs
-  then each of those gets uploaded to nais cdn and <<build outputs>>
+  then each of those gets uploaded to nais cdn and build outputs
   of the workflow aciton
 
 - release -> We should have an ergonomic way of going from tag or
