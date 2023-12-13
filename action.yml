@@ -126,7 +126,7 @@ runs:
       run: |
         nix build .#sbom --out-link sbom.json
 
-        echo "- Built SBOM, $(wc -l sbom.json | awk 'print $1') lines" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Built SBOM, $(wc -l sbom.json | awk 'print $1') lines" >> $GITHUB_STEP_SUMMARY
         echo "sbom=sbom.json" >> $GITHUB_OUTPUT
 
     # *** Build app spec, should the package exist
@@ -136,7 +136,7 @@ runs:
       shell: bash
       run: |
         nix build .#spec --out-link spec.yaml
-        echo "- Built nais spec, $(wc -c spec.yaml | awk '{print $1}') bytes" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Built nais spec, $(wc -c spec.yaml | awk '{print $1}') bytes" >> $GITHUB_STEP_SUMMARY
 
     - name: Upload spec
       uses: actions/upload-artifact@v3
@@ -161,7 +161,7 @@ runs:
         docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:latest
         docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:nix-build
         # TODO: There should be a little for loop over the tags from the extra tags input.
-        echo "- Built image: ${{ steps.analyze.outputs.image_address }}" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Built image: ${{ steps.analyze.outputs.image_address }}" >> $GITHUB_STEP_SUMMARY
 
     # *** Goggle cloud authentication
     # The "identity provider" here is a _workload identity_
