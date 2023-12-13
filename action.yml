@@ -116,7 +116,7 @@ runs:
     - name: add banner
       shell: bash
       run: |
-        echo "# ![](https://avatars.githubusercontent.com/u/29488289?s=200&v=4) Nais nix build" >> $GITHUB_STEP_SUMMARY
+        echo "# ![](https://avatars.githubusercontent.com/u/29488289?s=30) Nais nix build" >> $GITHUB_STEP_SUMMARY
 
     # *** Build SBOM, should the package exist
     - name: Build SBOM
@@ -126,7 +126,7 @@ runs:
       run: |
         nix build .#sbom --out-link sbom.json
 
-        echo "- Built SBOM, $(wc -l sbom.json) lines" >> $GITHUB_STEP_SUMMARY
+        echo "- Built SBOM, $(wc -l sbom.json | awk 'print $1') lines" >> $GITHUB_STEP_SUMMARY
         echo "sbom=sbom.json" >> $GITHUB_OUTPUT
 
     # *** Build app spec, should the package exist
@@ -136,7 +136,7 @@ runs:
       shell: bash
       run: |
         nix build .#spec --out-link spec.yaml
-        echo "- Built nais spec, this many chars: $(wc -c spec.yaml)" >> $GITHUB_STEP_SUMMARY
+        echo "- Built nais spec, $(wc -c spec.yaml | awk '{print $1}') bytes" >> $GITHUB_STEP_SUMMARY
 
     - name: Upload spec
       uses: actions/upload-artifact@v3
