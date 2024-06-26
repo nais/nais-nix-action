@@ -98,8 +98,11 @@ runs:
                    (gar-registry-url (format "europe-north1-docker.pkg.dev/%s/%s" project-id team)))
 
               (with-temp-buffer
-                (insert (format "sa_email=%s\n" sa-email))
-                (insert (format "gar_registry_url=%s\n" gar-registry-url))
+                (progn
+                (insert "\n")
+                (insert (format "sa_email=%s" sa-email))
+                (insert "\n")
+                (insert (format "gar_registry_url=%s" gar-registry-url)))
                 (write-region (point-min) (point-max) (getenv "GITHUB_OUTPUT")))
 
               (princ (format "sa_email=%s\n" sa-email))
