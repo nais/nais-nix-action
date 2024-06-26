@@ -62,33 +62,51 @@ runs:
       shell: bash
       id: "setup"
       run: |
-        if [ -z "${{ inputs.project_id }}" ]; then
-          echo "::error ::project_id not set. Please provide as input."
-          exit 1
-        elif [ -z "${{ inputs.identity_provider }}" ]; then
-          echo "::error ::identity_provider not set. Please provide as input."
-          exit 1
-        elif [ -z "${{ inputs.team }}" ]; then
-          echo "::error ::team not set. Please provide as input."
-          exit 1
-        fi
-        slug=${{ inputs.team }}
-        prefix="gar"
-        maxLength=30
+        nix profile install nixpkgs#emacs
+        emacs --script <<EOF
+        (defun error (message)
+          "Print an error message and exit."
+          (princ (format "::error ::%s\n" message))
+          (kill-emacs 1))
 
-        hash=$(echo -n "$slug" | sha256sum | cut -d ' ' -f 1)
+        (defun main ()
+          "Main function to setup environment variables."
+          (let* ((project-id (getenv "INPUT_PROJECT_ID"))
+                 (identity-provider (getenv "INPUT_IDENTITY_PROVIDER"))
+                 (team (getenv "INPUT_TEAM")))
 
-        prefixLength=${#prefix}
-        hashLength=4
-        slugLength=$((maxLength - prefixLength - hashLength - 2))
+            (if (or (not project-id) (string-empty-p project-id))
+                (error "project_id not set. Please provide as input."))
 
-        truncatedSlug=$(echo -n "${slug:0:$slugLength}" | sed 's/-$//')
-        truncatedHash=$(echo -n "$hash" | head -c $hashLength)
+            (if (or (not identity-provider) (string-empty-p identity-provider))
+                (error "identity_provider not set. Please provide as input."))
 
-        # Most of these outputs should probably be envs
-        echo "sa_email=${prefix}-${truncatedSlug}-${truncatedHash}@${{ inputs.project_id }}.iam.gserviceaccount.com" >> $GITHUB_OUTPUT
-        echo "gar_registry_url=europe-north1-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.team }}" >> $GITHUB_OUTPUT
+            (if (or (not team) (string-empty-p team))
+                (error "team not set. Please provide as input."))
 
+            (let* ((slug team)
+                   (prefix "gar")
+                   (maxLength 30)
+                   (hash (substring (secure-hash 'sha256 slug) 0 8))
+                   (prefixLength (length prefix))
+                   (hashLength 4)
+                   (slugLength (min (length slug) (- maxLength prefixLength hashLength 2)))
+                   (truncatedSlug (replace-regexp-in-string "-$" "" (substring slug 0 slugLength)))
+                   (truncatedHash (substring hash 0 hashLength))
+                   (sa-email (format "%s-%s-%s@%s.iam.gserviceaccount.com"
+                                     prefix truncatedSlug truncatedHash project-id))
+                   (gar-registry-url (format "europe-north1-docker.pkg.dev/%s/%s" project-id team)))
+
+              (with-temp-buffer
+                (insert (format "sa_email=%s\n" sa-email))
+                (insert (format "gar_registry_url=%s\n" gar-registry-url))
+                (write-region (point-min) (point-max) (getenv "GITHUB_OUTPUT")))
+
+              (princ (format "sa_email=%s\n" sa-email))
+              (princ (format "gar_registry_url=%s\n" gar-registry-url)))))
+
+              (main)
+        EOF
     # *** Flake analysis
     - name: Analyze
       id: analyze
