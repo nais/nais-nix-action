@@ -140,10 +140,13 @@ runs:
         echo "✅ Built nais spec, $(wc -c spec.yaml | awk '{print $1}') bytes" >> $GITHUB_STEP_SUMMARY
 
     - name: Upload spec
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: spec.yaml
+        # what to upload
         path: spec.yaml
+
+        # what to call the upload
+        name: spec.yaml
 
     # *** Build and load images
     # Build the images as a tarball, load the image and retag it with "fully qualified OCI reference name"
