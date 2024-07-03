@@ -166,7 +166,7 @@ runs:
         echo "sha=${TAG}" >> $GITHUB_OUTPUT
 
         docker tag ${NAME_AND_TAG} ${{ steps.analyze.outputs.image_address }}
-        docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.image_tag }}
+        docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
         docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:latest
         docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:nix-build
         # TODO: There should be a little for loop over the tags from the extra tags input.
