@@ -97,6 +97,12 @@ runs:
       shell: bash
       run: |
         image_name=$(nix eval .#image.drvAttrs.imageName | tr -d '"')
+        image_address_prefix="europe-north1-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.team }}/"
+        if [[ $image_name == "$image_address_address"* ]]; then
+          # Avoid duplication if team already set it,
+          #  say for simplifying their GH workflow wrt. nais's `spec.image`
+          image_name=${image_name#"$image_address_prefix"}
+        fi
         echo "image=${image_name}" >> $GITHUB_OUTPUT
 
         image_tag=$(nix eval .#image.drvAttrs.imageTag | tr -d '"')
