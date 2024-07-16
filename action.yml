@@ -216,7 +216,7 @@ runs:
 
     # *** Run cosign et al.
     - name: "Generate SBOM, attest and sign image"
-      if: "${{ inputs.push == 'true' }} &&  ${{ steps.analyze.outputs.sbom == 'true' }}"
+      if: "${{ inputs.push == 'true' && steps.analyze.outputs.sbom == 'true' }}"
       uses: nais/attest-sign@v1.3.1
       with:
         image_ref: ${{ steps.analyze.outputs.image_address }}:${{ steps.build-images.outputs.sha }}@${{ steps.push.outputs.image_sha256 }}
