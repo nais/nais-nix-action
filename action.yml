@@ -204,12 +204,11 @@ runs:
         registry: "${{ steps.setup.outputs.gar_registry_url }}"
         username: "oauth2accesstoken"
         password: "${{ steps.auth.outputs.access_token }}"
-
     - name: Push image to registry
       id: push
       shell: bash
       run: |
-        docker tag  ${{ steps.analyze.outputs.image_address }}  ${{ steps.analyze.outputs.image_address }}:${{ steps.build_images.outputs.sha }}
+        docker tag  ${{ steps.analyze.outputs.image_address }}  ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
         docker push --all-tags ${{ steps.analyze.outputs.image_address }}
 
     # *** Run cosign et al.
@@ -225,5 +224,5 @@ runs:
       shell: bash
       id: set-outputs
       run: |-
-        echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.build_image.outputs.sha }}" >> $GITHUB_OUTPUT
+        echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}" >> $GITHUB_OUTPUT
         echo "sbom=${{ steps.build-sbom.outputs.sbom }}" >> $GITHUB_OUTPUT
