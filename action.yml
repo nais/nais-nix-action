@@ -173,6 +173,7 @@ runs:
         echo "sha=${TAG}" >> $GITHUB_OUTPUT
 
         docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
+        docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:latest
         # TODO: There should be a little for loop over the tags from the extra tags input.
         echo "✅ Built image: ${{ steps.analyze.outputs.image_address }}" >> $GITHUB_STEP_SUMMARY
 
