@@ -98,7 +98,7 @@ runs:
       run: |
         image_name=$(nix eval .#image.drvAttrs.imageName | tr -d '"')
         image_address_prefix="europe-north1-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.team }}/"
-        if [[ $image_name == "$image_address_address"* ]]; then
+        if [[ $image_name == "$image_address_prefix"* ]]; then
           # Avoid duplication if team already set it,
           #  say for simplifying their GH workflow wrt. nais's `spec.image`
           image_name=${image_name#"$image_address_prefix"}
@@ -119,7 +119,7 @@ runs:
         # echo ${PACKAGES} >> $GITHUB_STEP_SUMMARY
         # echo "packages=${PACKAGES}" >> $GITHUB_OUTPUT
 
-        echo "image_address=europe-north1-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.team }}/${image_name}" >> $GITHUB_OUTPUT
+        echo "image_address=${image_address_prefix}${image_name}" >> $GITHUB_OUTPUT
 
     # *** Add banner with a summary of the image analysis etc
     # - this should be distributed over all the steps
