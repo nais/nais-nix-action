@@ -172,10 +172,7 @@ runs:
         TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Tag }}')
         echo "sha=${TAG}" >> $GITHUB_OUTPUT
 
-        docker tag ${NAME_AND_TAG} ${{ steps.analyze.outputs.image_address }}
         docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
-        docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:latest
-        docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:nix-build
         # TODO: There should be a little for loop over the tags from the extra tags input.
         echo "✅ Built image: ${{ steps.analyze.outputs.image_address }}" >> $GITHUB_STEP_SUMMARY
 
