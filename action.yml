@@ -172,10 +172,6 @@ runs:
         TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Tag }}')
         echo "sha=${TAG}" >> $GITHUB_OUTPUT
 
-        docker tag ${NAME_AND_TAG} ${{ steps.analyze.outputs.image_address }}
-        docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
-        docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:latest
-        docker tag ${{ steps.analyze.outputs.image_address }} ${{ steps.analyze.outputs.image_address }}:nix-build
         # TODO: There should be a little for loop over the tags from the extra tags input.
         echo "✅ Built image: ${{ steps.analyze.outputs.image_address }}" >> $GITHUB_STEP_SUMMARY
 
@@ -208,16 +204,11 @@ runs:
         registry: "${{ steps.setup.outputs.gar_registry_url }}"
         username: "oauth2accesstoken"
         password: "${{ steps.auth.outputs.access_token }}"
-
     - name: Push image to registry
       id: push
       shell: bash
       run: |
-        date_tag=$(echo "$(TZ='Europe/Oslo' date '+%FT%H-%M-%S')-${{ steps.build-images.outputs.sha }}")
-        docker tag ${{ steps.analyze.outputs.image_address }}:latest ${{ steps.analyze.outputs.image_address }}:${date_tag}
-        image_sha256=$(docker images --no-trunc --quiet ${{ steps.analyze.outputs.image_address }}:latest)
-        echo "image_sha256=${image_sha256}" >> $GITHUB_OUTPUT
-        echo "date_tag=${date_tag}" >> $GITHUB_OUTPUT
+        docker tag   ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}
         docker push --all-tags ${{ steps.analyze.outputs.image_address }}
 
     # *** Run cosign et al.
@@ -233,5 +224,5 @@ runs:
       shell: bash
       id: set-outputs
       run: |-
-        echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.push.outputs.date_tag }}" >> $GITHUB_OUTPUT
+        echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}" >> $GITHUB_OUTPUT
         echo "sbom=${{ steps.build-sbom.outputs.sbom }}" >> $GITHUB_OUTPUT
