@@ -218,6 +218,8 @@ runs:
       shell: bash
       run: |
         docker tag   ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}
+        image_sha256=$(docker images --no-trunc --quiet ${{ steps.analyze.outputs.image_address }}:latest)
+        echo "image_sha256=${image_sha256}" >> $GITHUB_OUTPUT
         docker push --all-tags ${{ steps.analyze.outputs.image_address }}
 
     # *** Run cosign et al.
