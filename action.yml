@@ -168,15 +168,13 @@ runs:
     - name: Build Images
       shell: bash
       run: |
-        nix build .#image --out-link result-image && docker load < result-image
+        LOADED_IMAGE=$(nix build .#image --out-link result-image && docker load < result-image | awk -F ': ' '{print $2}')
         NAME_AND_TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Repository }}:{{ .Tag }}')
         TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Tag }}')
         echo "sha=$TAG" >> $GITHUB_OUTPUT
         echo $NAME_AND_TAG
         echo $TAG
-        if [[ $NAME_AND_TAG != "${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}/"* ]]; then
-          docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}
-        fi
+        docker tag $LOADED_IMAGE ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
 
         # TODO: There should be a little for loop over the tags from the extra tags input.
         echo "✅ Built image: ${{ steps.analyze.outputs.image_address }}" >> $GITHUB_STEP_SUMMARY
