@@ -26,6 +26,10 @@ inputs:
     description: "Extra tags to add to the Docker images"
     required: false
     default: ""
+  registry:
+    description: "the docker registry to use"
+    required: false
+    default: "europe-north1-docker.pkg.dev"
 
 # *** output definitions
 outputs:
@@ -89,7 +93,7 @@ runs:
 
         # Most of these outputs should probably be envs
         echo "sa_email=${prefix}-${truncatedSlug}-${truncatedHash}@${{ inputs.project_id }}.iam.gserviceaccount.com" >> $GITHUB_OUTPUT
-        echo "gar_registry_url=europe-north1-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.team }}" >> $GITHUB_OUTPUT
+        echo "gar_registry_url=${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}" >> $GITHUB_OUTPUT
 
     # *** Flake analysis
     - name: Analyze
@@ -97,7 +101,7 @@ runs:
       shell: bash
       run: |
         image_name=$(nix eval .#image.drvAttrs.imageName | tr -d '"')
-        image_address_prefix="europe-north1-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.team }}/"
+        image_address_prefix="${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}/"
         if [[ $image_name == "$image_address_prefix"* ]]; then
           # Avoid duplication if team already set it,
           #  say for simplifying their GH workflow wrt. nais's `spec.image`
@@ -171,6 +175,9 @@ runs:
         NAME_AND_TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Repository }}:{{ .Tag }}')
         TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Tag }}')
         echo "sha=${TAG}" >> $GITHUB_OUTPUT
+        if [[ $NAME_AND_TAG != "${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}/"* ]]; then
+          docker tag $NAME_AND_TAG ${{ steps.analyze.outputs.image_address }}:latest
+        fi
 
         # TODO: There should be a little for loop over the tags from the extra tags input.
         echo "✅ Built image: ${{ steps.analyze.outputs.image_address }}" >> $GITHUB_STEP_SUMMARY
