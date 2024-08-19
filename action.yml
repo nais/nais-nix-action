@@ -169,7 +169,7 @@ runs:
       shell: bash
       run: |
         nix build .#image --out-link result-image && docker load < result-image
-
+        NAME_AND_TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Repository }}:{{ .Tag }}')
         TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Tag }}')
         echo "sha=$TAG" >> $GITHUB_OUTPUT
         echo $NAME_AND_TAG
