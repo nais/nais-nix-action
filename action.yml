@@ -166,25 +166,22 @@ runs:
     # *** Build and load images
     # Build the images as a tarball, load the image and retag it with "fully qualified OCI reference name"
     - name: Build Images
-      id: build-images
       shell: bash
       run: |
         nix build .#image --out-link result-image && docker load < result-image
 
-        # NAME_AND_TAG is a flake.image.name:the-tag-from-the-flake, unless specified in the flake its the content hash of the drv
-        NAME_AND_TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Repository }}:{{ .Tag }}')
         TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Tag }}')
         echo "sha=$TAG" >> $GITHUB_OUTPUT
         echo $NAME_AND_TAG
         echo $TAG
         if [[ $NAME_AND_TAG != "${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}/"* ]]; then
-          docker tag $NAME_AND_TAG ${{ steps.analyze.outputs.image_address }}:$TAG
+          docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.image_tag }} ${{ steps.analyze.outputs.image_address }}:$TAG
         fi
 
         # TODO: There should be a little for loop over the tags from the extra tags input.
         echo "✅ Built image: ${{ steps.analyze.outputs.image_address }}" >> $GITHUB_STEP_SUMMARY
 
-    # *** Goggle cloud authentication
+    # *** Goggle clou id: build-images d authentication
     # The "identity provider" here is a _workload identity_
     - id: "auth"
       name: "Authenticate to Google Cloud"
