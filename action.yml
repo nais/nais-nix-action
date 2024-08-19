@@ -175,7 +175,7 @@ runs:
         echo $NAME_AND_TAG
         echo $TAG
         if [[ $NAME_AND_TAG != "${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}/"* ]]; then
-          docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.image_tag }} ${{ steps.analyze.outputs.image_address }}:$TAG
+          docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:$TAG
         fi
 
         # TODO: There should be a little for loop over the tags from the extra tags input.
