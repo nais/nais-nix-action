@@ -169,11 +169,6 @@ runs:
       shell: bash
       run: |
         LOADED_IMAGE=$(nix build .#image --out-link result-image && docker load < result-image | awk -F ': ' '{print $2}')
-        NAME_AND_TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Repository }}:{{ .Tag }}')
-        TAG=$(docker image ls --filter reference=${{ steps.analyze.outputs.image }} --format '{{ .Tag }}')
-        echo "sha=$TAG" >> $GITHUB_OUTPUT
-        echo $NAME_AND_TAG
-        echo $TAG
         docker tag $LOADED_IMAGE ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
 
         # TODO: There should be a little for loop over the tags from the extra tags input.
@@ -222,7 +217,7 @@ runs:
       if: "${{ inputs.push == 'true' && steps.analyze.outputs.sbom == 'true' }}"
       uses: nais/attest-sign@v1.3.1
       with:
-        image_ref: ${{ steps.analyze.outputs.image_address }}:${{ steps.build-images.outputs.sha }}@${{ steps.push.outputs.image_sha256 }}
+        image_ref: ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}@${{ steps.push.outputs.image_sha256 }}
         sbom: ${{ steps.build-sbom.outputs.sbom }}
 
     # *** These outputs are mostly used by nais/deploy-aciton
