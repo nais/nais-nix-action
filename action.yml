@@ -104,7 +104,7 @@ runs:
       id: analyze
       shell: bash
       run: |
-        ${{ inputs.debug }} && echo "analyze"
+        test ${{ inputs.debug }} && echo "analyze"
         image_name=$(nix eval .#image.drvAttrs.imageName | tr -d '"')
         image_address_prefix="${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}/"
         if [[ $image_name == "$image_address_prefix"* ]]; then
@@ -113,12 +113,12 @@ runs:
           image_name=${image_name#"$image_address_prefix"}
         fi
         echo "image=${image_name}" >> $GITHUB_OUTPUT
-        ${{ inputs.debug }} && echo "image=${image_name}"
+        test ${{ inputs.debug }} && echo "image=${image_name}"
 
         image_tag=$(nix eval .#image.drvAttrs.imageTag | tr -d '"')
 
         echo "tag=${image_tag}" >> $GITHUB_OUTPUT
-        ${{ inputs.debug }} && echo "tag=${image_tag}"
+        test ${{ inputs.debug }} && echo "tag=${image_tag}"
 
         #  PACKAGES=$(nix flake show --json | jq -r '.packages."x86_64-linux" | keys[]' | tr "\n" " ")
 
@@ -126,13 +126,13 @@ runs:
         SPEC=$(nix flake show --json | jq -r '.packages."x86_64-linux" | keys[]' | grep -q spec && echo true || echo false)
 
         echo "sbom=${SBOM}" >> $GITHUB_OUTPUT
-        ${{ inputs.debug }} && echo "sbom=${SBOM}"
+        test ${{ inputs.debug }} && echo "sbom=${SBOM}"
 
         echo "spec=${SPEC}" >> $GITHUB_OUTPUT
-        ${{ inputs.debug }} && echo "spec=${SPEC}"
+        test ${{ inputs.debug }} && echo "spec=${SPEC}"
 
         echo "image_address=${image_address_prefix}${image_name}" >> $GITHUB_OUTPUT
-        ${{ inputs.debug }} && echo "image_address=${image_address_prefix}${image_name}"
+        test ${{ inputs.debug }} && echo "image_address=${image_address_prefix}${image_name}"
 
     # *** Add banner with a summary of the image analysis etc
     # - this should be distributed over all the steps
@@ -177,7 +177,7 @@ runs:
       shell: bash
       run: |
         LOADED_IMAGE=$(nix build .#image --out-link result-image && docker load < result-image | awk -F ': ' '{print $2}')
-        ${{ inputs.debug }} && echo "LOADED_IMAGE=$LOADED_IMAGE"
+        test ${{ inputs.debug }} && echo "LOADED_IMAGE=$LOADED_IMAGE"
         docker tag $LOADED_IMAGE ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
 
         # TODO: There should be a little for loop over the tags from the extra tags input.
@@ -217,10 +217,11 @@ runs:
       shell: bash
       run: |
         docker images
+
         image_sha256=$(docker buildx imagetools inspect ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} --format "{{json .Manifest}}" | jq -r ".digest")
 
         echo "image_sha256=${image_sha256}" >> $GITHUB_OUTPUT
-        ${{ inputs.debug }} && echo "image_sha256=${image_sha256}"
+        test ${{ inputs.debug }} && echo "image_sha256=${image_sha256}"
 
         docker push ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
         docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:latest
@@ -241,7 +242,7 @@ runs:
       id: set-outputs
       run: |-
         echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}" >> $GITHUB_OUTPUT
-        ${{ inputs.debug }} &&  echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}"
+        test ${{ inputs.debug }} &&  echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}"
 
         echo "sbom=${{ steps.build-sbom.outputs.sbom }}" >> $GITHUB_OUTPUT
-        ${{ inputs.debug }} && echo "sbom=${{ steps.build-sbom.outputs.sbom }}"
+        test ${{ inputs.debug }} && echo "sbom=${{ steps.build-sbom.outputs.sbom }}"
