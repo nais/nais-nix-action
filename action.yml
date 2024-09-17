@@ -30,6 +30,10 @@ inputs:
     description: "the docker registry to use"
     required: false
     default: "europe-north1-docker.pkg.dev"
+  debug:
+    description: "Print lots of outputs"
+    required: false
+    default: false
 
 # *** output definitions
 outputs:
@@ -100,6 +104,7 @@ runs:
       id: analyze
       shell: bash
       run: |
+        [ -n "${${{ inputs.debug }}}" ] && echo "analyze"
         image_name=$(nix eval .#image.drvAttrs.imageName | tr -d '"')
         image_address_prefix="${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}/"
         if [[ $image_name == "$image_address_prefix"* ]]; then
@@ -108,9 +113,12 @@ runs:
           image_name=${image_name#"$image_address_prefix"}
         fi
         echo "image=${image_name}" >> $GITHUB_OUTPUT
+        [ -n "${${{ inputs.debug }}}" ] && echo "image=${image_name}"
 
         image_tag=$(nix eval .#image.drvAttrs.imageTag | tr -d '"')
+
         echo "tag=${image_tag}" >> $GITHUB_OUTPUT
+        [ -n "${${{ inputs.debug }}}" ] && echo "tag=${image_tag}"
 
         #  PACKAGES=$(nix flake show --json | jq -r '.packages."x86_64-linux" | keys[]' | tr "\n" " ")
 
@@ -118,12 +126,13 @@ runs:
         SPEC=$(nix flake show --json | jq -r '.packages."x86_64-linux" | keys[]' | grep -q spec && echo true || echo false)
 
         echo "sbom=${SBOM}" >> $GITHUB_OUTPUT
-        echo "spec=${SPEC}" >> $GITHUB_OUTPUT
+        [ -n "${${{ inputs.debug }}}" ] && echo "sbom=${SBOM}"
 
-        # echo ${PACKAGES} >> $GITHUB_STEP_SUMMARY
-        # echo "packages=${PACKAGES}" >> $GITHUB_OUTPUT
+        echo "spec=${SPEC}" >> $GITHUB_OUTPUT
+        [ -n "${${{ inputs.debug }}}" ] && echo "spec=${SPEC}"
 
         echo "image_address=${image_address_prefix}${image_name}" >> $GITHUB_OUTPUT
+        [ -n "${${{ inputs.debug }}}" ] && echo "image_address=${image_address_prefix}${image_name}"
 
     # *** Add banner with a summary of the image analysis etc
     # - this should be distributed over all the steps
@@ -140,7 +149,6 @@ runs:
       shell: bash
       run: |
         nix build .#sbom --out-link sbom.json
-
         echo "✅ Built SBOM, $(wc -l sbom.json | awk '{print $1}') lines" >> $GITHUB_STEP_SUMMARY
         echo "sbom=sbom.json" >> $GITHUB_OUTPUT
 
@@ -209,7 +217,10 @@ runs:
       run: |
         docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:latest
         image_sha256=$(docker buildx imagetools inspect ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} --format "{{json .Manifest}}" | jq -r ".digest")
+
         echo "image_sha256=${image_sha256}" >> $GITHUB_OUTPUT
+        [ -n "${${{ inputs.debug }}}" ] && echo "image_sha256=${image_sha256}"
+
         docker push ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
         docker push ${{ steps.analyze.outputs.image_address }}:latest
 
@@ -227,4 +238,7 @@ runs:
       id: set-outputs
       run: |-
         echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}" >> $GITHUB_OUTPUT
+        [ -n "${${{ inputs.debug }}}" ] &&  echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}"
+
         echo "sbom=${{ steps.build-sbom.outputs.sbom }}" >> $GITHUB_OUTPUT
+        [ -n "${${{ inputs.debug }}}" ] && echo "sbom=${{ steps.build-sbom.outputs.sbom }}"
