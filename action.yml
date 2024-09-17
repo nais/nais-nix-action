@@ -217,23 +217,19 @@ runs:
       shell: bash
       run: |
         docker images
-
-        image_sha256=$(docker buildx imagetools inspect ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} --format "{{json .Manifest}}" | jq -r ".digest")
-
-        echo "image_sha256=${image_sha256}" >> $GITHUB_OUTPUT
-        test ${{ inputs.debug }} && echo "image_sha256=${image_sha256}"
-
         docker push ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
         docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:latest
 
-        docker push ${{ steps.analyze.outputs.image_address }}:latest
+        docker push ${{ steps.analyze.outputs.image_address }}:latest  | tee push_output.txt
+        image_digest=$(grep "digest:" push_output.txt | awk '{ print $2 }')
+        echo "image_digest=${image_digest}" >> $GITHUB_OUTPUT
 
     # *** Run cosign et al.
     - name: "Generate SBOM, attest and sign image"
       if: "${{ inputs.push == 'true' && steps.analyze.outputs.sbom == 'true' }}"
       uses: nais/attest-sign@v1.3.1
       with:
-        image_ref: ${{ steps.analyze.outputs.image_address }}@${{ steps.push.outputs.image_sha256 }}
+        image_ref: ${{ steps.analyze.outputs.image_address }}@${{ steps.push.outputs.image_digest }}
         sbom: ${{ steps.build-sbom.outputs.sbom }}
 
     # *** These outputs are mostly used by nais/deploy-aciton
