@@ -177,6 +177,7 @@ runs:
       shell: bash
       run: |
         LOADED_IMAGE=$(nix build .#image --out-link result-image && docker load < result-image | awk -F ': ' '{print $2}')
+        ${{ inputs.debug }} && echo "LOADED_IMAGE=$LOADED_IMAGE"
         docker tag $LOADED_IMAGE ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
 
         # TODO: There should be a little for loop over the tags from the extra tags input.
@@ -215,13 +216,15 @@ runs:
       id: push
       shell: bash
       run: |
-        docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:latest
+        docker images
         image_sha256=$(docker buildx imagetools inspect ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} --format "{{json .Manifest}}" | jq -r ".digest")
 
         echo "image_sha256=${image_sha256}" >> $GITHUB_OUTPUT
         ${{ inputs.debug }} && echo "image_sha256=${image_sha256}"
 
         docker push ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
+        docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:latest
+
         docker push ${{ steps.analyze.outputs.image_address }}:latest
 
     # *** Run cosign et al.
