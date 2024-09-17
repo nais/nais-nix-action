@@ -207,14 +207,9 @@ runs:
       id: push
       shell: bash
       run: |
-        docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:latest
-        echo FOO1
         image_sha256=$(docker buildx imagetools inspect ${{ steps.analyze.outputs.image_address }} --format "{{json .Manifest}}" | jq -r ".digest")
-        echo FOO2
         echo "image_sha256=${image_sha256}" >> $GITHUB_OUTPUT
-        echo FOO3
         docker push --all-tags ${{ steps.analyze.outputs.image_address }}
-        echo FOO4
 
     # *** Run cosign et al.
     - name: "Generate SBOM, attest and sign image"
