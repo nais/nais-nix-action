@@ -207,6 +207,7 @@ runs:
       id: push
       shell: bash
       run: |
+        docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:latest
         image_sha256=$(docker buildx imagetools inspect ${{ steps.analyze.outputs.image_address }} --format "{{json .Manifest}}" | jq -r ".digest")
         echo "image_sha256=${image_sha256}" >> $GITHUB_OUTPUT
         docker push --all-tags ${{ steps.analyze.outputs.image_address }}
