@@ -221,7 +221,7 @@ runs:
         docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:latest
 
         docker push ${{ steps.analyze.outputs.image_address }}:latest  | tee push_output.txt
-        image_digest=$(grep "digest:" push_output.txt | awk '{ print $2 }')
+        image_digest=$(grep "digest:" push_output.txt | awk '{ print $3 }')
         echo "image_digest=${image_digest}" >> $GITHUB_OUTPUT
 
     # *** Run cosign et al.
