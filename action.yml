@@ -104,7 +104,6 @@ runs:
       id: analyze
       shell: bash
       run: |
-        test ${{ inputs.debug }} && echo "analyze"
         image_name=$(nix eval .#image.drvAttrs.imageName | tr -d '"')
         image_address_prefix="${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}/"
         if [[ $image_name == "$image_address_prefix"* ]]; then
@@ -113,26 +112,17 @@ runs:
           image_name=${image_name#"$image_address_prefix"}
         fi
         echo "image=${image_name}" >> $GITHUB_OUTPUT
-        test ${{ inputs.debug }} && echo "image=${image_name}"
 
         image_tag=$(nix eval .#image.drvAttrs.imageTag | tr -d '"')
 
         echo "tag=${image_tag}" >> $GITHUB_OUTPUT
-        test ${{ inputs.debug }} && echo "tag=${image_tag}"
-
-        #  PACKAGES=$(nix flake show --json | jq -r '.packages."x86_64-linux" | keys[]' | tr "\n" " ")
 
         SBOM=$(nix flake show --json | jq -r '.packages."x86_64-linux" | keys[]' | grep -q sbom && echo true || echo false)
         SPEC=$(nix flake show --json | jq -r '.packages."x86_64-linux" | keys[]' | grep -q spec && echo true || echo false)
 
         echo "sbom=${SBOM}" >> $GITHUB_OUTPUT
-        test ${{ inputs.debug }} && echo "sbom=${SBOM}"
-
         echo "spec=${SPEC}" >> $GITHUB_OUTPUT
-        test ${{ inputs.debug }} && echo "spec=${SPEC}"
-
         echo "image_address=${image_address_prefix}${image_name}" >> $GITHUB_OUTPUT
-        test ${{ inputs.debug }} && echo "image_address=${image_address_prefix}${image_name}"
 
     # *** Add banner with a summary of the image analysis etc
     # - this should be distributed over all the steps
@@ -177,7 +167,7 @@ runs:
       shell: bash
       run: |
         LOADED_IMAGE=$(nix build .#image --out-link result-image && docker load < result-image | awk -F ': ' '{print $2}')
-        test ${{ inputs.debug }} && echo "LOADED_IMAGE=$LOADED_IMAGE"
+
         docker tag $LOADED_IMAGE ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
 
         # TODO: There should be a little for loop over the tags from the extra tags input.
@@ -238,7 +228,4 @@ runs:
       id: set-outputs
       run: |-
         echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}" >> $GITHUB_OUTPUT
-        test ${{ inputs.debug }} &&  echo "image=${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}"
-
         echo "sbom=${{ steps.build-sbom.outputs.sbom }}" >> $GITHUB_OUTPUT
-        test ${{ inputs.debug }} && echo "sbom=${{ steps.build-sbom.outputs.sbom }}"
