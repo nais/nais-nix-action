@@ -3,6 +3,53 @@
 Nais Nix Action is a convention-over-configuration github workflow
 action. You provide a flake and Nais Nix Action does the right thing!
 
+** Usage
+
+Pass down the Workload Identity provider secret and the Nais management project id, that's it.
+
+#+begin_src yaml
+
+  steps:
+  - name: nix-build
+    uses: nais/nais-nix-action@main
+    id: nix-build
+    with:
+      team: <team-name>
+      identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+      project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+
+#+end_src
+
+This action can also, optionally, build a spec for you. You will have to download this spec and use it in the nais-deploy action.
+
+#+begin_src yaml
+
+  deploy:
+  name: deploy
+  needs: build
+  runs-on: ubuntu-latest
+  permissions:
+    packages: "write"
+    contents: "read"
+    id-token: "write"
+  steps:
+    - uses: actions/checkout@v4
+    # VVV Note the download step here
+    - name: Download spec
+      uses: actions/download-artifact@v4
+      with:
+        name: spec.yaml
+    - name: Deploy-dev
+      uses: nais/deploy/actions/deploy@v2
+      env:
+        IMAGE: ${{ steps.build.outputs.image }}
+        CLUSTER: dev-gcp
+        # VVVV This references the downloaded spec
+        RESOURCE: spec.yaml
+
+#+end_src
+
+
 ** Conventions
 
 You can supply the following packages or outputs and the right thing
@@ -12,7 +59,7 @@ will happen
   dockerTools then we will upload the container to GAR, with some
   additonal tags
 
-- checks, we run nix flake check, it runs all the checks outputs
+- checks -> we run nix flake check, it runs all the checks outputs
   before anything else is built. If you're running on kvm (Public
   repos) or on large runners then you can run vmtests for x86_64-linux
 
@@ -24,12 +71,3 @@ will happen
   use it in lieue of having a yaml file in the repo. I.e if you want to
   use any other tool to generate your spec, like CUE, Dhall or a series of
   small shell scripts you are more than welcome to.
-
-*** Planned
-
-- cdn -> if this attr exists and builds some set of static outputs
-  then each of those gets uploaded to nais cdn and build outputs
-  of the workflow aciton
-
-- release -> We should have an ergonomic way of going from tag or
-  somesuch to github release
