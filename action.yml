@@ -8,6 +8,9 @@
 name: "Nais Nix Action"
 description: "Check Nix flakes, build Nix packages and Docker images, and push the images"
 inputs:
+  flake_root:
+    required: true
+    default: ""
   # *** Google Cloud Parameters
   project_id:
     description: "Google Cloud project ID"
@@ -63,7 +66,9 @@ runs:
 
     # *** Flake checks
     - name: Nix Flake Check
-      run: nix flake check -L
+      run: |
+        cd $(git rev-parse --show-toplevel) && cd ${{ inputs.flake_root }}
+        nix flake check -L
       shell: bash
 
     # *** Env setup
@@ -104,6 +109,7 @@ runs:
       id: analyze
       shell: bash
       run: |
+        cd $(git rev-parse --show-toplevel) && cd ${{ inputs.flake_root }}
         image_name=$(nix eval .#image.drvAttrs.imageName | tr -d '"')
         image_address_prefix="${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}/"
         if [[ $image_name == "$image_address_prefix"* ]]; then
@@ -129,6 +135,7 @@ runs:
     - name: add banner
       shell: bash
       run: |
+        cd $(git rev-parse --show-toplevel) && cd ${{ inputs.flake_root }}
         echo "# ![](https://avatars.githubusercontent.com/u/29488289?s=30) Nais nix build" >> $GITHUB_STEP_SUMMARY
         echo "Using the [nais-nix-action](https://github.com/nais/nais-nix-action)" >> $GITHUB_STEP_SUMMARY
 
@@ -138,6 +145,7 @@ runs:
       id: build-sbom
       shell: bash
       run: |
+        cd $(git rev-parse --show-toplevel) && cd ${{ inputs.flake_root }}
         nix build .#sbom --out-link sbom.json
         echo "✅ Built SBOM, $(wc -l sbom.json | awk '{print $1}') lines" >> $GITHUB_STEP_SUMMARY
         echo "sbom=sbom.json" >> $GITHUB_OUTPUT
@@ -148,6 +156,7 @@ runs:
       id: build-spec
       shell: bash
       run: |
+        cd $(git rev-parse --show-toplevel) && cd ${{ inputs.flake_root }}
         nix build .#spec --out-link spec.yaml
         echo "✅ Built Nais spec as spec.yaml, $(wc -c spec.yaml | awk '{print $1}') bytes" >> $GITHUB_STEP_SUMMARY
 
@@ -166,6 +175,7 @@ runs:
     - name: Build Images
       shell: bash
       run: |
+        cd $(git rev-parse --show-toplevel) && cd ${{ inputs.flake_root }}
         LOADED_IMAGE=$(nix build .#image --out-link result-image && docker load < result-image | awk -F ': ' '{print $2}')
 
         docker tag $LOADED_IMAGE ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
