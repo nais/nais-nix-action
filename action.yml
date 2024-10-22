@@ -52,11 +52,11 @@ runs:
 
     # *** Install nix on the action runner
     - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@v3
+      uses: DeterminateSystems/nix-installer-action@v14
 
     # *** Flake health check
     - name: Check Nix flake inputs
-      uses: DeterminateSystems/flake-checker-action@v4
+      uses: DeterminateSystems/flake-checker-action@v9
 
     # *** Magic nix cache
     - uses: DeterminateSystems/magic-nix-cache-action@main
