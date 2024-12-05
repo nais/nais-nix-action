@@ -1,8 +1,9 @@
 {
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   inputs.flake-utils.url = "github:numtide/flake-utils";
+  inputs.nais-helpers.url = "path:/Users/carl/source/nais-2/nais-nix-action";
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, nais-helpers, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -31,26 +32,24 @@
               port: 8080
           '';
 
+        buildApp = name: {
+          image = mkImage name;
+          sbom = mkSbom name (mkImage name);
+          spec = mkSpec name (mkImage name);
+        };
+        apps = {
+          app1 = buildApp "app1";
+          app2 = buildApp "app2";
+          app3 = buildApp "app3";
+        };
       in {
-        apps = [
-          {
-            name = "app1";
-            image = mkImage "app1";
-            sbom = mkSbom "app1" self.apps.app1.image;
-            spec = mkSpec "app1" self.apps.app1.image;
-          }
-          {
-            name = "app2";
-            image = mkImage "app2";
-            sbom = mkSbom "app2" self.apps.app2.image;
-            spec = mkSpec "app2" self.apps.app2.image;
-          }
-          {
-            name = "app3";
-            image = mkImage "app3";
-            sbom = mkSbom "app3" self.apps.app3.image;
-            spec = mkSpec "app3" self.apps.app3.image;
-          }
-        ];
+        packages = {
+          analysis = nais-helpers.lib.analyzeNaisAppsToFile {
+            registry = "europe-north1-docker.pkg.dev";
+            project = "my-project";
+            team = "my-team";
+          } { ${system} = apps; };
+          naisApps = apps;
+        };
       });
 }

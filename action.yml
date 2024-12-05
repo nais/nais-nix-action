@@ -112,30 +112,27 @@ runs:
 
 
 ################################ Actual work happens below
+    - name: Analyze Flake Apps
+      id: analyze
+      shell: bash
+      run: |
 
     - name: Analyze Flake Apps
       id: analyze
       shell: bash
       run: |
-       # Get all apps from the flake
-       apps_json=$(nix eval --json .#apps)
-       if [[ "${{ inputs.debug }}" == "true" ]]; then
-         echo "Raw apps from flake:"
-         echo "$apps_json"
-       fi
-
-       processed_apps=$(echo "$apps_json" | jq --arg registry "${{ inputs.registry }}" \
-                                              --arg project "${{ inputs.project_id }}" \
-                                              --arg team "${{ inputs.team }}" \
-         'map(. + {
-           image_address: "\($registry)/\($project)/\($team)/" + .name,
-           has_spec: (.spec != null),
-           has_sbom: (.sbom != null)
-         })')
-
-       echo "apps=${processed_apps}" >> $GITHUB_OUTPUT
-       echo "app_names=$(echo "$processed_apps" | jq -r '.[].name | @json' | tr '\n' ' ')" >> $GITHUB_OUTPUT
-
+        processed_apps=$(nix eval --json .#naisApps | jq --arg registry "${{ inputs.registry }}" \
+                                        --arg project "${{ inputs.project_id }}" \
+                                        --arg team "${{ inputs.team }}" \
+                                        --arg system "$(nix eval --impure --expr builtins.currentSystem --raw)" '
+          .[$system] |
+          to_entries | map({
+            name: .key,
+            has_spec: (.value.spec != null),
+            has_sbom: (.value.sbom != null),
+            image_address: "\($registry)/\($project)/\($team)/" + .key
+          })')
+        echo "apps=${processed_apps}" >> $GITHUB_OUTPUT
     - name: Build Apps
       shell: bash
       run: |
