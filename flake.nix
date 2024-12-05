@@ -2,7 +2,7 @@
   description = "Helper functions for NAIS flake apps";
   outputs = { self, nixpkgs }: {
     lib = {
-      analyzeNaisAppsToFile = { registry, project, team, system }:
+      analyzeNaisAppsToFile = { registry, project, team }:
         apps:
         let
           pkgs = nixpkgs.legacyPackages.${system};
