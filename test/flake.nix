@@ -1,7 +1,7 @@
 {
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.nais-helpers.url = "path:/Users/carl/source/nais-2/nais-nix-action";
+  inputs.nais-helpers.url = "github:nais/nais-nix-action/multi";
 
   outputs = { self, nixpkgs, nais-helpers, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
