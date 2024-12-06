@@ -1,0 +1,53 @@
+name: 'attest-sign-multiple'
+description: 'Attest and sign multiple docker images with their corresponding SBOMs'
+branding:
+  icon: 'lock'
+  color: 'green'
+inputs:
+  image_sbom_pairs:
+    description: |
+      'JSON string containing array of image-sbom pairs'
+      'Format: [{"image": "<image>@<digest>", "sbom": "path/to/sbom.json"}, ...]'
+      'Example: [{"image": "europe-north1-docker.pkg.dev/nais-io/nais/image1@sha256:123...", "sbom": "sbom1.json"}, {"image": "europe-north1-docker.pkg.dev/nais-io/nais/image2@sha256:456...", "sbom": "sbom2.json"}]'
+    required: true
+outputs:
+  processed_pairs:
+    description: 'Number of image-SBOM pairs processed'
+    value: ${{ steps.process-pairs.outputs.count }}
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Install cosign'
+      uses: 'sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da' # ratchet:sigstore/cosign-installer@v3
+
+    - name: 'Process image-SBOM pairs'
+      id: process-pairs
+      shell: 'bash'
+      run: |
+        pairs='${{ inputs.image_sbom_pairs }}'
+        count=0
+
+        echo "$pairs" | jq -c '.[]' | while read -r pair; do
+          image=$(echo "$pair" | jq -r '.image')
+          sbom=$(echo "$pair" | jq -r '.sbom')
+
+          if [[ $image != *@sha256:* ]]; then
+            echo "Error: Image must be in the form of <image>@<digest>: $image"
+            exit 1
+          fi
+          # SBOMS ARE REQUIRED
+          if [ ! -f "$sbom" ]; then
+            echo "Error: SBOM file does not exist, it's _required_: $sbom"
+            exit 1
+          }
+
+          echo "Processing pair: $image with SBOM $sbom"
+
+          cosign sign --yes "$image"
+          cosign attest --yes --predicate "$sbom" --type cyclonedx "$image"
+
+          count=$((count + 1))
+        done
+
+        echo "Successfully processed $count image-SBOM pairs"
+        echo "count=$count" >> $GITHUB_OUTPUT
