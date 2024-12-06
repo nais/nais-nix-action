@@ -82,57 +82,44 @@ runs:
         echo "sa_email=${prefix}-${truncatedSlug}-${truncatedHash}@${{ inputs.project_id }}.iam.gserviceaccount.com" >> $GITHUB_OUTPUT
         echo "gar_registry_url=${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}" >> $GITHUB_OUTPUT
 
-    - id: "auth"
-      name: "Authenticate to Google Cloud"
-      uses: "google-github-actions/auth@v2"
-      with:
-        workload_identity_provider: ${{ inputs.identity_provider }}
-        service_account: ${{ steps.setup.outputs.sa_email }}
-        token_format: access_token
+    # - id: "auth"
+    #   name: "Authenticate to Google Cloud"
+    #   uses: "google-github-actions/auth@v2"
+    #   with:
+    #     workload_identity_provider: ${{ inputs.identity_provider }}
+    #     service_account: ${{ steps.setup.outputs.sa_email }}
+    #     token_format: access_token
 
-    - name: "Handle auth failure"
-      if: ${{ failure() && steps.auth.outcome == 'failure' }}
-      shell: bash
-      run: |
-        cat <<EOF
-        ::error ::Failed to authenticate to Google Cloud.
-        EOF
+    # - name: "Handle auth failure"
+    #   if: ${{ failure() && steps.auth.outcome == 'failure' }}
+    #   shell: bash
+    #   run: |
+    #     cat <<EOF
+    #     ::error ::Failed to authenticate to Google Cloud.
+    #     EOF
 
-    # *** Login with credentials from Auth
-    # Note that this is conditional on inputs.push, which by default is true. you want something else?
-    # Try setting it to false
-    - name: "Login to registry"
-      id: login-to-registry
-      if: ${{ inputs.push == 'true' }}
-      uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # ratchet:docker/login-action@v2
-      with:
-        registry: "${{ steps.setup.outputs.gar_registry_url }}"
-        username: "oauth2accesstoken"
-        password: "${{ steps.auth.outputs.access_token }}"
+    # # *** Login with credentials from Auth
+    # # Note that this is conditional on inputs.push, which by default is true. you want something else?
+    # # Try setting it to false
+    # - name: "Login to registry"
+    #   id: login-to-registry
+    #   if: ${{ inputs.push == 'true' }}
+    #   uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # ratchet:docker/login-action@v2
+    #   with:
+    #     registry: "${{ steps.setup.outputs.gar_registry_url }}"
+    #     username: "oauth2accesstoken"
+    #     password: "${{ steps.auth.outputs.access_token }}"
 
 
 ################################ Actual work happens below
-    - name: Analyze Flake Apps
+    - name: Get Analysis
       id: analyze
       shell: bash
       run: |
+        nix build .#analysis
+        cat result
+        echo "apps=$(cat result)" >> $GITHUB_OUTPUT
 
-    - name: Analyze Flake Apps
-      id: analyze
-      shell: bash
-      run: |
-        processed_apps=$(nix eval --json .#naisApps | jq --arg registry "${{ inputs.registry }}" \
-                                        --arg project "${{ inputs.project_id }}" \
-                                        --arg team "${{ inputs.team }}" \
-                                        --arg system "$(nix eval --impure --expr builtins.currentSystem --raw)" '
-          .[$system] |
-          to_entries | map({
-            name: .key,
-            has_spec: (.value.spec != null),
-            has_sbom: (.value.sbom != null),
-            image_address: "\($registry)/\($project)/\($team)/" + .key
-          })')
-        echo "apps=${processed_apps}" >> $GITHUB_OUTPUT
     - name: Build Apps
       shell: bash
       run: |
@@ -158,42 +145,42 @@ runs:
           echo "✅ Built $name" >> $GITHUB_STEP_SUMMARY
         done
 
-    - name: Upload Specs
-      uses: actions/upload-artifact@v4
-      with:
-        path: spec-*.yaml
-        name: specs
+    # - name: Upload Specs
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     path: spec-*.yaml
+    #     name: specs
 
-    - name: Push and Upload Artifacts
-      id: push-artifacts
-      shell: bash
-      run: |
-        # Initialize an array to collect results
-        results=()
+    # - name: Push and Upload Artifacts
+    #   id: push-artifacts
+    #   shell: bash
+    #   run: |
+    #     # Initialize an array to collect results
+    #     results=()
 
-        echo "${{ steps.analyze.outputs.apps }}" | jq -c '.[]' | while read -r app; do
-          name=$(echo "$app" | jq -r '.name')
-          image_address=$(echo "$app" | jq -r '.image_address')
+    #     echo "${{ steps.analyze.outputs.apps }}" | jq -c '.[]' | while read -r app; do
+    #       name=$(echo "$app" | jq -r '.name')
+    #       image_address=$(echo "$app" | jq -r '.image_address')
 
-          # Push Docker image if enabled
-          if [[ "${{ inputs.push }}" == "true" ]]; then
-            echo "Pushing ${image_address}:latest"
-            docker push "${image_address}:latest" | tee "push-${name}.txt"
-            digest=$(grep "digest:" "push-${name}.txt" | awk '{ print $3 }')
-          fi
+    #       # Push Docker image if enabled
+    #       if [[ "${{ inputs.push }}" == "true" ]]; then
+    #         echo "Pushing ${image_address}:latest"
+    #         docker push "${image_address}:latest" | tee "push-${name}.txt"
+    #         digest=$(grep "digest:" "push-${name}.txt" | awk '{ print $3 }')
+    #       fi
 
-          # Collect artifacts paths for this app
-          artifacts=()
-          if [[ -f "spec-${name}.yaml" ]]; then
-            artifacts+=("spec-${name}.yaml")
-          fi
-          if [[ -f "sbom-${name}.json" ]]; then
-            artifacts+=("sbom-${name}.json")
-          fi
+    #       # Collect artifacts paths for this app
+    #       artifacts=()
+    #       if [[ -f "spec-${name}.yaml" ]]; then
+    #         artifacts+=("spec-${name}.yaml")
+    #       fi
+    #       if [[ -f "sbom-${name}.json" ]]; then
+    #         artifacts+=("sbom-${name}.json")
+    #       fi
 
-          # Add result for this app
-          results+=("{\"name\": \"${name}\", \"image\": \"${image_address}:latest\", \"digest\": \"${digest}\", \"artifacts\": $(printf '%s\n' "${artifacts[@]}" | jq -R . | jq -s .)}")
-        done
+    #       # Add result for this app
+    #       results+=("{\"name\": \"${name}\", \"image\": \"${image_address}:latest\", \"digest\": \"${digest}\", \"artifacts\": $(printf '%s\n' "${artifacts[@]}" | jq -R . | jq -s .)}")
+    #     done
 
-        # Save final results
-        echo "results=[$(IFS=,; echo "${results[*]}")]" >> $GITHUB_OUTPUT
+    #     # Save final results
+    #     echo "results=[$(IFS=,; echo "${results[*]}")]" >> $GITHUB_OUTPUT
