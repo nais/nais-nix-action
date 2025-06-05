@@ -53,6 +53,10 @@ runs:
     # *** Install nix on the action runner
     - name: Install Nix
       uses: cachix/install-nix-action@31
+      with:
+        extra_nix_config: |
+          extra-experimental-features = flakes pipe-operators
+          accept-flake-config = true
 
     # *** Flake health check
     - name: Check Nix flake inputs
