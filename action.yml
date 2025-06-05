@@ -45,25 +45,18 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout code
+    - name: Get the code from git repo
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
     # *** Install nix on the action runner
     - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@v14
+      uses: cachix/install-nix-action@31
 
     # *** Flake health check
     - name: Check Nix flake inputs
-      uses: DeterminateSystems/flake-checker-action@v9
-
-    # *** Magic nix cache
-    - uses: DeterminateSystems/magic-nix-cache-action@main
-
-    # *** Flake checks
-    - name: Nix Flake Check
-      run: nix flake check -L
+      run: nix flake check -L --log-format internal-json |& nix run nixpkgs#nix-output-monitor -- --json
       shell: bash
 
     # *** Env setup
