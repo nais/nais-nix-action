@@ -52,7 +52,7 @@ runs:
 
     # *** Install nix on the action runner
     - name: Install Nix
-      uses: cachix/install-nix-action@31
+      uses: cachix/install-nix-action@31.4.0
       with:
         extra_nix_config: |
           extra-experimental-features = flakes pipe-operators
