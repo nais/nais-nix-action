@@ -60,7 +60,7 @@ runs:
 
     # *** Flake health check
     - name: Check Nix flake inputs
-      run: nix flake check -L --log-format internal-json
+      run: nix flake check
       shell: bash
 
     # *** Env setup
