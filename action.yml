@@ -10,11 +10,11 @@ description: "Check Nix flakes, build Nix packages and Docker images, and push t
 inputs:
   # *** Google Cloud Parameters
   project_id:
-    description: "Google Cloud project ID"
-    required: true
+    description: "Deprecated"
+    required: false
   identity_provider:
-    description: "Workload Identity Provider"
-    required: true
+    description: "Deprecated"
+    required: false
   team:
     description: "Team name"
     required: true
@@ -67,17 +67,32 @@ runs:
     # This is the same as nais/login but without the buildx dependency
     - name: Setup environment
       shell: bash
-      id: "setup"
+      id: setup
       run: |
-        if [ -z "${{ inputs.project_id }}" ]; then
-          echo "::error ::project_id not set. Please provide as input."
-          exit 1
-        elif [ -z "${{ inputs.identity_provider }}" ]; then
-          echo "::error ::identity_provider not set. Please provide as input."
-          exit 1
-        elif [ -z "${{ inputs.team }}" ]; then
+        if [ -z "${{ inputs.team }}" ]; then
           echo "::error ::team not set. Please provide as input."
           exit 1
+        fi
+
+        if [ -n "${{ inputs.project_id}}" ]; then
+          echo "::notice ::project_id is deprecated and should not be set, please remove from your workflow. The Github environment variable will be removed from the organization in the future"
+        fi
+
+        if [ -n "${{ inputs.identity_provider }}" ]; then
+          echo "::notice ::identity_provider is deprecated and should not be set, please remove from your workflow. The Github environment variable will be removed from the organization in the future"
+        fi
+
+        set +o pipefail
+        set +e
+        DEPLOY_JSON=$(mktemp)
+        wget -O "$DEPLOY_JSON" https://storage.googleapis.com/github-deploy-data/"$GITHUB_REPOSITORY_OWNER.json" 2>/dev/null
+        WGET_EXIT_CODE=$?
+
+        if [ $WGET_EXIT_CODE -ne 0 ]; then
+            echo "::warning ::failed getting deploy_data, using fallback"
+            project_id="${{ inputs.project_id }}"
+        else
+            project_id=$(jq --raw-output '.NAIS_MANAGEMENT_PROJECT_ID' < "$DEPLOY_JSON")
         fi
         slug=${{ inputs.team }}
         prefix="gar"
@@ -93,8 +108,9 @@ runs:
         truncatedHash=$(echo -n "$hash" | head -c $hashLength)
 
         # Most of these outputs should probably be envs
-        echo "sa_email=${prefix}-${truncatedSlug}-${truncatedHash}@${{ inputs.project_id }}.iam.gserviceaccount.com" >> $GITHUB_OUTPUT
-        echo "gar_registry_url=${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}" >> $GITHUB_OUTPUT
+        echo "project_id=${project_id}" >> $GITHUB_OUTPUT
+        echo "sa_email=${prefix}-${truncatedSlug}-${truncatedHash}@${project_id}.iam.gserviceaccount.com" >> $GITHUB_OUTPUT
+        echo "gar_registry_url=${{ inputs.registry }}/${project_id}/${{ inputs.team }}" >> $GITHUB_OUTPUT
 
     # *** Flake analysis
     - name: Analyze
@@ -102,7 +118,7 @@ runs:
       shell: bash
       run: |
         image_name=$(nix eval .#image.drvAttrs.imageName | tr -d '"')
-        image_address_prefix="${{ inputs.registry }}/${{ inputs.project_id }}/${{ inputs.team }}/"
+        image_address_prefix="${{ inputs.registry }}/${{ steps.setup.outputs.project_id }}/${{ inputs.team }}/"
         if [[ $image_name == "$image_address_prefix"* ]]; then
           # Avoid duplication if team already set it,
           #  say for simplifying their GH workflow wrt. nais's `spec.image`
@@ -167,47 +183,26 @@ runs:
 
         docker tag $LOADED_IMAGE ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
 
-        # TODO: There should be a little for loop over the tags from the extra tags input.
         echo "✅ Built image: ${{ steps.analyze.outputs.image_address }}" >> $GITHUB_STEP_SUMMARY
 
     # *** Goggle clou id: build-images d authentication
     # The "identity provider" here is a _workload identity_
     - id: "auth"
       name: "Authenticate to Google Cloud"
-      uses: "google-github-actions/auth@v2"
+      uses: "nais/login@v0"
       with:
-        workload_identity_provider: ${{ inputs.identity_provider }}
-        service_account: ${{ steps.setup.outputs.sa_email }}
-        token_format: access_token
+        team: ${{ inputs.team }}
 
-    - name: "Handle auth failure"
-      if: ${{ failure() && steps.auth.outcome == 'failure' }}
-      shell: bash
-      run: |
-        cat <<EOF
-        ::error ::Failed to authenticate to Google Cloud.
-        EOF
-
-    # *** Login with credentials from Auth
-    # Note that this is conditional on inputs.push, which by default is true. you want something else?
-    # Try setting it to false
-    - name: "Login to registry"
-      id: login-to-registry
-      if: ${{ inputs.push == 'true' }}
-      uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # ratchet:docker/login-action@v2
-      with:
-        registry: "${{ steps.setup.outputs.gar_registry_url }}"
-        username: "oauth2accesstoken"
-        password: "${{ steps.auth.outputs.access_token }}"
     - name: Push image to registry
       id: push
       shell: bash
       run: |
         docker images
         docker push ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
+        # TODO: There should be a little for loop over the tags from the extra tags input.
         docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:latest
 
-        docker push ${{ steps.analyze.outputs.image_address }}:latest  | tee push_output.txt
+        docker push ${{ steps.analyze.outputs.image_address }}:latest | tee push_output.txt
         image_digest=$(grep "digest:" push_output.txt | awk '{ print $3 }')
         echo "image_digest=${image_digest}" >> $GITHUB_OUTPUT
 
