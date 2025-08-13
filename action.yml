@@ -58,6 +58,15 @@ runs:
           extra-experimental-features = nix-command flakes pipe-operators
           accept-flake-config = true
 
+    # *** Magic nix cache
+    - uses: DeterminateSystems/magic-nix-cache-action@main
+
+    # *** Flake checks
+    - name: Nix Flake Check
+      run: nix flake check -L
+      shell: bash
+
+
     # *** Flake health check
     - name: Check Nix flake inputs
       run: nix flake check
@@ -147,7 +156,6 @@ runs:
 
     # *** Build SBOM, should the package exist
     - name: Build SBOM
-      uses: DeterminateSystems/magic-nix-cache-action@main
       if: ${{ steps.analyze.outputs.sbom == 'true' }}
       id: build-sbom
       shell: bash
@@ -158,7 +166,6 @@ runs:
 
     # *** Build app spec, should the package exist
     - name: Build spec
-      uses: DeterminateSystems/magic-nix-cache-action@main
       if: ${{ steps.analyze.outputs.spec == 'true' }}
       id: build-spec
       shell: bash
@@ -179,7 +186,6 @@ runs:
     # *** Build and load images
     # Build the images as a tarball, load the image and retag it with "fully qualified OCI reference name"
     - name: Build Images
-      uses: DeterminateSystems/magic-nix-cache-action@main
       shell: bash
       run: |
         LOADED_IMAGE=$(nix build .#image --out-link result-image && docker load < result-image | awk -F ': ' '{print $2}')
