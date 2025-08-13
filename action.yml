@@ -61,7 +61,7 @@ runs:
     # *** Magic nix cache
     - uses: DeterminateSystems/magic-nix-cache-action@main
       with:
-        flags: use-flakehub=disabled
+        use-flakehub: disabled
 
     # *** Flake checks
     - name: Nix Flake Check
