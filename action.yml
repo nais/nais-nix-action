@@ -53,6 +53,8 @@ runs:
     # *** Install nix on the action runner
     - name: Install Nix
       uses: cachix/install-nix-action@v31
+
+    - name: Install cache action
       uses: DeterminateSystems/magic-nix-cache-action@main
 
       with:
