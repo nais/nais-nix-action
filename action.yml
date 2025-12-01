@@ -46,20 +46,20 @@ runs:
   using: "composite"
   steps:
     - name: Get the code from git repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # was: actions/checkout@v4
       with:
         fetch-depth: 0
 
     # *** Install nix on the action runner
     - name: Install Nix
-      uses: cachix/install-nix-action@v31
+      uses: cachix/install-nix-action@0b0e072294b088b73964f1d72dfdac0951439dbd # was: cachix/install-nix-action@v31
       with:
         extra_nix_config: |
           extra-experimental-features = nix-command flakes pipe-operators
           accept-flake-config = true
 
     # *** Magic nix cache
-    - uses: DeterminateSystems/magic-nix-cache-action@main
+    - uses: DeterminateSystems/magic-nix-cache-action@c6a5746789488c8753af0d61fc6b5d79a80391f3 # was: DeterminateSystems/magic-nix-cache-action@main
       with:
         use-flakehub: disabled
 
@@ -177,7 +177,7 @@ runs:
 
     - name: Upload spec
       if: ${{ steps.analyze.outputs.spec == 'true' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # was: actions/upload-artifact@v4
       with:
         # what to upload
         path: spec.yaml
@@ -220,7 +220,7 @@ runs:
     # *** Run cosign et al.
     - name: "Generate SBOM, attest and sign image"
       if: "${{ inputs.push == 'true' && steps.analyze.outputs.sbom == 'true' }}"
-      uses: nais/attest-sign@v1.3.1
+      uses: nais/attest-sign@09be3dca3d667907f11def87816b14e00e471ef9 # was: nais/attest-sign@v1.3.1
       with:
         image_ref: ${{ steps.analyze.outputs.image_address }}@${{ steps.push.outputs.image_digest }}
         sbom: ${{ steps.build-sbom.outputs.sbom }}
