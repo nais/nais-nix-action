@@ -65,13 +65,9 @@ runs:
 
     # *** Flake checks
     - name: Nix Flake Check
-      run: nix flake check -L
-      shell: bash
-
-
-    # *** Flake health check
-    - name: Check Nix flake inputs
-      run: nix flake check
+      run: |
+        set -euo pipefail
+        nix flake check -L
       shell: bash
 
     # *** Env setup
@@ -103,7 +99,7 @@ runs:
             echo "::warning ::failed getting deploy_data, using fallback"
             project_id="${{ inputs.project_id }}"
         else
-            project_id=$(jq --raw-output '.NAIS_MANAGEMENT_PROJECT_ID' < "$DEPLOY_JSON")
+            project_id=$(jq --raw-output '.NAIS_MANAGEMENT_PROJECT_ID' < "$DEPLOY_JSON") || project_id=""
         fi
         slug=${{ inputs.team }}
         prefix="gar"
