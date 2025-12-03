@@ -21,19 +21,19 @@ inputs:
   # *** Docker Parameters
   push:
     description: "Flag to indicate whether to push the images"
-    default: true
+    default: "true"
   extra_tags:
-    description: "Extra tags to add to the Docker images"
+    description: "Extra tags to add to the Docker images (space-separated list)"
     required: false
     default: ""
   registry:
     description: "the docker registry to use"
     required: false
     default: "europe-north1-docker.pkg.dev"
-  debug:
-    description: "Print lots of outputs"
-    required: false
-    default: false
+  # debug:
+  #   description: "Print lots of outputs"
+  #   required: false
+  #   default: false
 
 # *** output definitions
 outputs:
@@ -128,16 +128,24 @@ runs:
       id: analyze
       shell: bash
       run: |
-        image_name=$(nix eval .#image.drvAttrs.imageName | tr -d '"')
+        set -euo pipefail
+
+        image_name=$(nix eval .#image.drvAttrs.imageName | tr -d '"') || {
+          echo "::error ::Failed to read .#image.drvAttrs.imageName from flake; ensure your flake defines this attribute."
+          exit 1
+        }
         image_address_prefix="${{ inputs.registry }}/${{ steps.setup.outputs.project_id }}/${{ inputs.team }}/"
         if [[ $image_name == "$image_address_prefix"* ]]; then
           # Avoid duplication if team already set it,
           #  say for simplifying their GH workflow wrt. nais's `spec.image`
           image_name=${image_name#"$image_address_prefix"}
         fi
-        echo "image=${image_name}" >> $GITHUB_OUTPUT
+        echo "image_name=${image_name}" >> $GITHUB_OUTPUT
 
-        image_tag=$(nix eval .#image.drvAttrs.imageTag | tr -d '"')
+        image_tag=$(nix eval .#image.drvAttrs.imageTag | tr -d '"') || {
+          echo "::error ::Failed to read .#image.drvAttrs.imageTag from flake; ensure your flake defines this attribute."
+          exit 1
+        }
 
         echo "tag=${image_tag}" >> $GITHUB_OUTPUT
 
@@ -190,30 +198,39 @@ runs:
     - name: Build Images
       shell: bash
       run: |
+        set -euo pipefail
         LOADED_IMAGE=$(nix build .#image --out-link result-image && docker load < result-image | awk -F ': ' '{print $2}')
 
-        docker tag $LOADED_IMAGE ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
+        docker tag "$LOADED_IMAGE" "${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}"
 
         echo "✅ Built image: ${{ steps.analyze.outputs.image_address }}" >> $GITHUB_STEP_SUMMARY
 
     # *** Goggle clou id: build-images d authentication
     # The "identity provider" here is a _workload identity_
     - id: "auth"
+      if: ${{ inputs.push == 'true' }}
       name: "Authenticate to Google Cloud"
       uses: "nais/login@v0"
       with:
         team: ${{ inputs.team }}
 
     - name: Push image to registry
+      if: ${{ inputs.push == 'true' }}
       id: push
       shell: bash
       run: |
+        set -euo pipefail
         docker images
-        docker push ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}
-        # TODO: There should be a little for loop over the tags from the extra tags input.
-        docker tag ${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }} ${{ steps.analyze.outputs.image_address }}:latest
+        docker push "${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}"
 
-        docker push ${{ steps.analyze.outputs.image_address }}:latest | tee push_output.txt
+        for tag in ${{ inputs.extra_tags }}; do
+          docker tag "${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}" "${{ steps.analyze.outputs.image_address }}:${tag}"
+          docker push "${{ steps.analyze.outputs.image_address }}:${tag}"
+        done
+
+        docker tag "${{ steps.analyze.outputs.image_address }}:${{ steps.analyze.outputs.tag }}" "${{ steps.analyze.outputs.image_address }}:latest"
+
+        docker push "${{ steps.analyze.outputs.image_address }}:latest" | tee push_output.txt
         image_digest=$(grep "digest:" push_output.txt | awk '{ print $3 }')
         echo "image_digest=${image_digest}" >> $GITHUB_OUTPUT
 
